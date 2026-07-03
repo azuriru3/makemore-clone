@@ -109,4 +109,13 @@ python examples/train_mlp.py
 
 ## what I learned
 
-*(filling this in later)*
+Building micrograd first turned out to matter a lot here. Everything in this project felt like the same ideas at a bigger scale, not new concepts.
+
+- A "model" can just be counting. The bigram model has no gradients, no training loop, nothing. Count what follows what, divide by the row total, done. It was a good reminder that neural nets are a tool for when counting stops working, not the only way to build something that predicts text.
+- The +1 trick (Laplace smoothing) is there so `log(0)` never happens. If some bigram never showed up in training, its raw count is 0, its probability would be 0, and the log of that is negative infinity. Adding 1 to every count before normalizing means nothing is ever truly impossible, just unlikely. Small thing, but it explained why my first version without it kept crashing on certain names.
+- An embedding table is just a lookup table you can take gradients through. That one took a second to click. `C[X]` is literally indexing into a matrix with integers, but because `C` is a tensor with `requires_grad=True`, PyTorch still knows how to route gradients back into the rows that got looked up. It's not doing anything conceptually different from what `Value.__getitem__` would do if I'd bothered to add one to micrograd.
+- Context windows turn one word into several training examples. "emma" doesn't give you one example, it gives you one per character, each with a sliding window of whatever came before. I undercounted my dataset size the first time because I forgot the model also has to learn to predict the ending `.` token, not just the letters.
+- Watching train and dev loss stay close together (2.12 vs 2.14) was the first time overfitting stopped being an abstract warning and started being a number I could actually check.
+- Bad init makes the first chunk of training pointless. My first version of the MLP had way too large starting weights, so the very first predictions were confidently wrong, and a big chunk of early training was just the model climbing out of that hole instead of actually learning. Scaling the initial weights down fixed it immediately.
+- PyTorch's autograd is not a different idea from `backward()` in micrograd, it's the same idea done in C++ over whole tensors instead of one Python object per scalar. Once I saw `loss.backward()` walk the exact same kind of graph my own `Value` class builds, just faster and multi-dimensional, it stopped feeling like a black box.
+- Having the bigram model's loss (2.45) as a baseline made the MLP feel like a real result instead of a vibe. "The names look better" is a fuzzy thing to judge on its own, "beats the baseline by 0.3 nats and doesn't overfit" is not.
