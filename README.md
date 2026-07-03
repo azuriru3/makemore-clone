@@ -33,9 +33,75 @@ Here's every bigram count in the training data, which is basically the entire mo
 
 ![bigram count heatmap](examples/bigram_counts.png)
 
+## MLP model
+
+Instead of only looking at the single previous character, this one looks at the previous 3 (`block_size=3`), and instead of raw counts it learns a small embedding for each character plus a hidden layer on top, all trained with backprop and SGD like the MLP in micrograd-clone.
+
+```python
+from makemore.data import read_words, build_vocab, split_words, build_dataset
+from makemore.mlp import MLP, generate
+import torch
+
+words = read_words('data/names.txt')
+stoi, itos = build_vocab(words)
+Xtr, Ytr = build_dataset(words, stoi, block_size=3)
+
+g = torch.Generator().manual_seed(42)
+model = MLP(vocab_size=len(stoi), block_size=3, generator=g)
+loss = model.loss(Xtr, Ytr)
+loss.backward()
+```
+
+Full training run:
+
+```
+python examples/train_mlp.py
+```
+
+```
+final train loss: 2.1168
+final dev loss:   2.1437
+sampled names:
+  emarkik
+  analura
+  vin
+  deson
+  shilvan
+  aaryn
+  ken
+  ...
+```
+
+Train and dev loss land close together (2.12 vs 2.14), so it's not badly overfit, and both beat the bigram model's 2.45 by a decent margin. The names it generates are noticeably more name-shaped too, "shilvan" and "aaryn" look like something a person could plausibly be named, "anugeenvi" from the bigram model does not.
+
+![MLP training loss](examples/train_mlp_result.png)
+
 ## structure
 
-(filling in as I build out the MLP model)
+```
+makemore/
+  data.py  - vocab building, train/dev/test split, context-window dataset builder
+  bigram.py - counting-based bigram model with laplace smoothing
+  mlp.py    - the MLP model (embeddings + hidden layer) and its sampler
+data/
+  names.txt - the training data
+tests/
+  test_data.py
+  test_bigram.py
+  test_mlp.py
+examples/
+  train_bigram.py - trains and evaluates the bigram model, saves a heatmap
+  train_mlp.py     - trains and evaluates the MLP, saves the loss curve
+```
+
+## running it
+
+```
+pip install -r requirements.txt
+pytest tests/
+python examples/train_bigram.py
+python examples/train_mlp.py
+```
 
 ## what I learned
 
