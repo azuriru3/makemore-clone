@@ -76,6 +76,10 @@ Train and dev loss land close together (2.12 vs 2.14), so it's not badly overfit
 
 ![MLP training loss](examples/train_mlp_result.png)
 
+## why stop at bigram + MLP
+
+Karpathy's actual makemore keeps going well past this: batchnorm, a deeper WaveNet-style network, then RNNs and eventually a small transformer. I stopped after the MLP because these first two stages already cover the part I actually wanted to understand, going from "just count what follows what" to "learn a distributed representation and a small function on top of it." The later stages mostly add architecture, not new autograd concepts I hadn't already worked through building micrograd. Might come back and add batchnorm or the deeper model at some point.
+
 ## structure
 
 ```
